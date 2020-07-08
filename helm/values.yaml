@@ -1,0 +1,152 @@
+# Name of service
+nameOverride: ""
+fullnameOverride: ""
+
+# Number of pods to deploy
+replicaCount: 1
+
+# Docker container to deploy
+image:
+  repository: "hypertrace/zookeeper"
+  pullPolicy: "IfNotPresent"
+
+imagePullSecrets: []
+
+# Resources granted to pod
+resources:
+  requests:
+    cpu: "0.1"
+    memory: "200Mi"
+
+podAnnotations: {}
+
+serviceAccount:
+  create: true
+  name: ""
+
+updateStrategy:
+  type: RollingUpdate
+
+podManagementPolicy: OrderedReady
+
+podDisruptionBudget:
+  enabled: false
+  maxUnavailable: 1
+  minAvailable: ""
+
+livenessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 2
+  successThreshold: 1
+
+readinessProbe:
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 2
+  successThreshold: 1
+
+terminationGracePeriodSeconds: 60
+
+tolerations: []
+
+nodeSelector: {}
+
+affinity: {}
+
+securityContext:
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Persistence volume
+volume:
+  storageClassName: standard
+  storage: 2Gi
+
+# Set any JVM options like -Xmx or others
+javaOpts: "-Xms128M -Xmx128M"
+
+# zookeeper configuration
+config:
+  clientPort: 2181
+  followerPort: 2888
+  electionPort: 3888
+  dataDir: /var/lib/zookeeper/data
+  dataLogDir: /var/lib/zookeeper/data/log
+  tickTime: 2000
+  initLimit: 10
+  syncLimit: 5
+  autopurgeSnapRetainCount: 3
+  autopurgePurgeInterval: 12
+  maxClientCnxns: 60
+  minSessionTimeout: 4000
+  maxSessionTimeout: 40000
+  reconfigEnabled: "false"
+  commandsWhitelist: srvr, mntr, conf, ruok
+  globalOutstandingLimit: ""
+  preAllocSize: ""
+  snapCount: ""
+  clientPortAddress: ""
+  fsyncWarningthresholdms: ""
+  syncEnabled: ""
+  zookeeperExtendedTypesEnabled: ""
+  zookeeperEmulate353TTLNodes: ""
+  serverCnxnFactory: ""
+  snapshotTrustEmpty: ""
+  electionAlg: ""
+  leaderServes: ""
+  cnxTimeout: ""
+
+service:
+  port: 2181
+  ## Service type can be set to ClusterIP, NodePort or LoadBalancer.
+  type: ClusterIP
+  ## Service annotations
+  annotations: {}
+  loadBalancerSourceRanges: []
+
+# Monitoring
+servicemonitor:
+  enabled: false
+  interval: 15s
+  secure: false
+  tlsConfig: {}
+
+# Storage class
+storageclass:
+  enabled: false
+  name: kafka-zookeeper
+  annotations: {}
+  provisioner: kubernetes.io/gce-pd
+  reclaimPolicy: Delete
+  volumeBindingMode: Immediate
+  parameters:
+    type: pd-standard
+
+# JMX port
+jmx:
+  enabled: false
+  port: 5555
+
+## Prometheus Exporter Configuration
+## ref: https://prometheus.io/docs/instrumenting/exporters/
+prometheus:
+  ## JMX Exporter Configuration
+  ## ref: https://github.com/prometheus/jmx_exporter
+  jmx:
+    enabled: false
+    image:
+      repository: solsson/kafka-prometheus-jmx-exporter@sha256
+      tag: 6f82e2b0464f50da8104acd7363fb9b995001ddff77d248379f8788e78946143
+      pullPolicy: IfNotPresent
+    port: 5556
+    resources:
+      requests:
+        cpu: "0.1"
+        memory: "256Mi"
+
+prometheusrule:
+  enabled: false
+  annotations: {}

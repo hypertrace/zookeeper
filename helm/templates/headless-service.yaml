@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "zookeeper.headless.service" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  annotations:
+    {{- toYaml .Values.service.annotations | nindent 4 }}
+  labels:
+    {{- include "zookeeper.labels.standard" . | nindent 4 }}
+spec:
+  clusterIP: None
+  ports:
+    - name: follower
+      port: {{ int .Values.config.followerPort }}
+      targetPort: follower
+    - name: election
+      port: {{ int .Values.config.electionPort }}
+      targetPort: election
+  selector:
+    app: {{ template "zookeeper.name" . }}
+    release: {{ .Release.Name }}

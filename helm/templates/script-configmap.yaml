@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "zookeeper.fullname" . }}-script-configmap
+  labels:
+    {{- include "zookeeper.labels.standard" . | nindent 4 }}
+data:
+  run.sh: |
+    #!/bin/sh
+    ZOOKEEPER_ID=${POD_NAME##*-}
+    ZOOKEEPER_ID=$((ZOOKEEPER_ID+1))
+    echo $ZOOKEEPER_ID > $ZOOKEEPER_DATA_DIR/myid
+    mkdir -p $ZOOKEEPER_HOME/logs
+    export ZOO_LOG_DIR=$ZOOKEEPER_HOME/logs
+    exec $ZOOKEEPER_HOME/bin/zkServer.sh start-foreground
+
+  ok: |
+    #!/bin/sh
+    zkServer.sh status
+
+  ready: |
+    #!/bin/sh
+    echo ruok | nc 127.0.0.1 ${1:-2181}

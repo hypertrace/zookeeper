@@ -1,0 +1,95 @@
+{{- $clientPort := int .Values.config.clientPort -}}
+{{- $followerPort := int .Values.config.followerPort -}}
+{{- $electionPort := int .Values.config.electionPort }}
+{{- $fullname := include "zookeeper.fullname" . -}}
+{{- $namespace := .Release.Namespace -}}
+{{- $headlessServiceName := include "zookeeper.headless.service" . -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "zookeeper.fullname" . }}-configmap
+  labels:
+    {{- include "zookeeper.labels.standard" . | nindent 4 }}
+data:
+  zoo.cfg: |+
+    clientPort={{ .Values.config.clientPort }}
+    dataDir={{ .Values.config.dataDir }}
+    dataLogDir={{ .Values.config.dataLogDir }}
+    tickTime={{ .Values.config.tickTime }}
+    {{- if .Values.config.globalOutstandingLimit }}
+    globalOutstandingLimit={{ .Values.config.globalOutstandingLimit }}
+    {{- end }}
+    {{- if .Values.config.preAllocSize }}
+    preAllocSize={{ .Values.config.preAllocSize }}
+    {{- end }}
+    {{- if .Values.config.snapCount }}
+    snapCount={{ .Values.config.snapCount }}
+    {{- end }}
+    {{- if .Values.config.maxClientCnxns }}
+    maxClientCnxns={{ .Values.config.maxClientCnxns }}
+    {{- end }}
+    {{- if .Values.config.clientPortAddress }}
+    clientPortAddress={{ .Values.config.clientPortAddress }}
+    {{- end }}
+    {{- if .Values.config.minSessionTimeout }}
+    minSessionTimeout={{ .Values.config.minSessionTimeout }}
+    {{- end }}
+    {{- if .Values.config.maxSessionTimeout }}
+    maxSessionTimeout={{ .Values.config.maxSessionTimeout }}
+    {{- end }}
+    {{- if .Values.config.fsyncWarningthresholdms }}
+    fsync.warningthresholdms={{ .Values.config.fsyncWarningthresholdms }}
+    {{- end }}
+    {{- if .Values.config.autopurgeSnapRetainCount }}
+    autopurge.snapRetainCount={{ .Values.config.autopurgeSnapRetainCount }}
+    {{- end }}
+    {{- if .Values.config.autopurgePurgeInterval }}
+    autopurge.purgeInterval={{ .Values.config.autopurgePurgeInterval }}
+    {{- end }}
+    {{- if .Values.config.syncEnabled }}
+    syncEnabled={{ .Values.config.syncEnabled }}
+    {{- end }}
+    {{- if .Values.config.zookeeperExtendedTypesEnabled }}
+    zookeeper.extendedTypesEnabled={{ .Values.config.zookeeperExtendedTypesEnabled }}
+    {{- end }}
+    {{- if .Values.config.zookeeperEmulate353TTLNodes }}
+    zookeeper.emulate353TTLNodes={{ .Values.config.zookeeperEmulate353TTLNodes }}
+    {{- end }}
+    {{- if .Values.config.serverCnxnFactory }}
+    serverCnxnFactory={{ .Values.config.serverCnxnFactory }}
+    {{- end }}
+    {{- if .Values.config.snapshotTrustEmpty }}
+    snapshot.trust.empty={{ .Values.config.snapshotTrustEmpty }}
+    {{- end }}
+    {{- if .Values.config.electionAlg }}
+    electionAlg={{ .Values.config.electionAlg }}
+    {{- end }}
+    {{- if .Values.config.initLimit }}
+    initLimit={{ .Values.config.initLimit }}
+    {{- end }}
+    {{- if .Values.config.leaderServes }}
+    leaderServes={{ .Values.config.leaderServes }}
+    {{- end }}
+    {{- if .Values.config.syncLimit }}
+    syncLimit={{ .Values.config.syncLimit }}
+    {{- end }}
+    {{- if .Values.config.cnxTimeout }}
+    cnxTimeout={{ .Values.config.cnxTimeout }}
+    {{- end }}
+    {{- if .Values.config.reconfigEnabled }}
+    reconfigEnabled={{ .Values.config.reconfigEnabled }}
+    {{- end }}
+    {{- if .Values.config.commandsWhitelist }}
+    4lw.commands.whitelist={{ .Values.config.commandsWhitelist }}
+    {{- end }}
+    {{- range $i, $x := until (int .Values.replicaCount) }}
+    {{ printf "server.%d=%s-%d.%s.%s.svc.cluster.local:%d:%d" (add $i 1) $fullname $i $headlessServiceName $namespace $followerPort $electionPort }}
+    {{- end }}
+  log4j.properties: |+
+    zookeeper.root.logger=CONSOLE
+    zookeeper.console.threshold=INFO
+    log4j.rootLogger=${zookeeper.root.logger}
+    log4j.appender.CONSOLE=org.apache.log4j.ConsoleAppender
+    log4j.appender.CONSOLE.Threshold=${zookeeper.console.threshold}
+    log4j.appender.CONSOLE.layout=org.apache.log4j.PatternLayout
+    log4j.appender.CONSOLE.layout.ConversionPattern=%d{ISO8601} [myid:%X{myid}] - %-5p [%t:%C{1}@%L] - %m%n

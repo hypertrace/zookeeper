@@ -1,0 +1,157 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "zookeeper.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "zookeeper.labels.standard" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 2
+  serviceName: {{ template "zookeeper.headless.service" . }}
+  selector:
+    matchLabels:
+      app: {{ include "zookeeper.name" . }}
+      release: {{ .Release.Name }}
+  updateStrategy:
+    {{- toYaml .Values.updateStrategy | nindent 4 }}
+  podManagementPolicy: {{ .Values.podManagementPolicy }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "zookeeper.name" . }}
+        release: {{ .Release.Name }}
+      {{- if .Values.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ template "zookeeper.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: client
+              containerPort: {{ .Values.config.clientPort }}
+            - name: follower
+              containerPort: {{ .Values.config.followerPort }}
+            - name: election
+              containerPort: {{ .Values.config.electionPort }}
+            {{- if .Values.prometheus.jmx.enabled }}
+            - name: jmx
+              containerPort: {{ .Values.jmx.port }}
+            {{- end }}
+          command: ["/scripts/run.sh"]
+          livenessProbe:
+            exec:
+              command: ["/scripts/ok"]
+            initialDelaySeconds: {{ int .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ int .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ int .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ int .Values.livenessProbe.failureThreshold }}
+            successThreshold: {{ int .Values.livenessProbe.successThreshold }}
+          readinessProbe:
+            exec:
+              command: ["/scripts/ready"]
+            initialDelaySeconds: {{ int .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ int .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ int .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ int .Values.readinessProbe.failureThreshold }}
+            successThreshold: {{ int .Values.readinessProbe.successThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: JVMFLAGS
+              value: {{ .Values.javaOpts | quote }}
+            - name: ZOOKEEPER_HOME
+              value: /opt/zookeeper
+            - name: ZOOKEEPER_DATA_DIR
+              value: {{ .Values.config.dataDir }}
+            - name: ZOOKEEPER_DATA_LOG_DIR
+              value: {{ .Values.config.dataLogDir }}
+            {{- if .Values.jmx.enabled }}
+            - name: JMXPORT
+              value: {{ .Values.jmx.port | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: {{ include "zookeeper.fullname" . }}-config
+              mountPath: /opt/zookeeper/conf/zoo.cfg
+              subPath: zoo.cfg
+            - name: {{ include "zookeeper.fullname" . }}-config
+              mountPath: /opt/zookeeper/conf/log4j.properties
+              subPath: log4j.properties
+            - name: {{ include "zookeeper.fullname" . }}-script-config
+              mountPath: /scripts
+            - name: zk-data
+              mountPath: /var/lib/zookeeper/data
+        {{- if .Values.prometheus.jmx.enabled }}
+        - name: prometheus-jmx-exporter
+          image: "{{ .Values.prometheus.jmx.image.repository }}:{{ .Values.prometheus.jmx.image.tag }}"
+          imagePullPolicy: "{{ .Values.prometheus.jmx.image.pullPolicy }}"
+          command:
+            - java
+            - -XX:+UnlockExperimentalVMOptions
+            - -XX:+UseCGroupMemoryLimitForHeap
+            - -XX:MaxRAMFraction=1
+            - -XshowSettings:vm
+            - -jar
+            - jmx_prometheus_httpserver.jar
+            - {{ .Values.prometheus.jmx.port | quote }}
+            - /etc/jmx-zookeeper/jmx-zookeeper-prometheus.yml
+          ports:
+            - name: jmx-prometheus
+              containerPort: {{ .Values.prometheus.jmx.port }}
+          resources:
+            {{- toYaml .Values.prometheus.jmx.resources | nindent 12 }}
+          volumeMounts:
+            - name: {{ include "zookeeper.fullname" . }}-jmx-config
+              mountPath: /etc/jmx-zookeeper
+        {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      volumes:
+        - name: {{ include "zookeeper.fullname" . }}-config
+          configMap:
+            name: {{ include "zookeeper.fullname" . }}-configmap
+        - name: {{ include "zookeeper.fullname" . }}-script-config
+          configMap:
+            name: {{ include "zookeeper.fullname" . }}-script-configmap
+            defaultMode: 0555
+        {{- if .Values.prometheus.jmx.enabled }}
+        - name: {{ include "zookeeper.fullname" . }}-jmx-config
+          configMap:
+            name: {{ include "zookeeper.fullname" . }}-jmx-configmap
+        {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: zk-data
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        storageClassName: {{ .Values.volume.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.volume.storage }}

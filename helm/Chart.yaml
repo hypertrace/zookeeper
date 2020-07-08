@@ -1,0 +1,6 @@
+apiVersion: v2
+name: zookeeper
+type: application
+description: zookeeper helm chart
+appVersion: 3.4.10
+version: 0.1.0

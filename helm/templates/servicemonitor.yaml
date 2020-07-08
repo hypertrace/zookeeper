@@ -1,0 +1,34 @@
+{{- if and ( .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" ) ( .Values.servicemonitor.enabled ) ( .Values.prometheus.jmx.enabled ) }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "zookeeper.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    monitoring: shared
+    {{- include "zookeeper.labels.standard" . | nindent 4 }}
+spec:
+  jobLabel: app
+  selector:
+    matchExpressions:
+      - key: app
+        operator: In
+        values:
+          - {{ template "zookeeper.name" . }}
+      - key: release
+        operator: In
+        values:
+          - {{ .Release.Name }}
+  endpoints:
+    - port: jmx-prometheus
+      interval: {{ .Values.servicemonitor.interval }}
+      {{- if .Values.servicemonitor.secure }}
+      scheme: https
+      tlsConfig:
+        {{- toYaml .Values.servicemonitor.tlsConfig | nindent 8 }}
+      {{- end }}
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+{{- end }}
