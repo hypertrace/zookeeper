@@ -18,6 +18,8 @@ resources:
     cpu: "0.1"
     memory: "200Mi"
 
+podLabels: {}
+
 podAnnotations: {}
 
 serviceAccount:
