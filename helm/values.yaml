@@ -152,3 +152,20 @@ prometheus:
 prometheusrule:
   enabled: false
   annotations: {}
+
+# Backup of zookeeper data to a GCS bucket
+backup:
+  enabled: false
+  schedule: "0 4 * * *"
+  startingDeadlineSeconds: 86400
+  concurrencyPolicy: Forbid
+  javaOpts: "-Xms128M -Xmx256M"
+  location: "gs://backup-bucket"
+  secretName: "secretName"
+  podLabels: {}
+  podAnnotations: {}
+  imagePullSecrets: []
+  affinity: {}
+  nodeSelector: {}
+  securityContext: {}
+  tolerations: []

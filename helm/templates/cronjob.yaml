@@ -1,0 +1,129 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: {{ include "zookeeper.fullname" . }}-backup
+  labels:
+    {{- include "zookeeper.labels.standard" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule |  quote }}
+  {{- if .Values.backup.startingDeadlineSeconds }}
+  startingDeadlineSeconds: {{ int .Values.backup.startingDeadlineSeconds }}
+  {{- end }}
+  {{- if .Values.backup.concurrencyPolicy }}
+  concurrencyPolicy: {{ .Values.backup.concurrencyPolicy }}
+  {{- end }}
+  {{- if not .Values.backup.enabled }}
+  suspend: true
+  {{- end }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- toYaml .Values.backup.podLabels | nindent 12 }}
+          annotations:
+            {{- toYaml .Values.backup.podAnnotations | nindent 12 }}
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: zookeeper-backup
+              # Docker image is built from https://github.com/singalravi/guano
+              image: "singalravi/guano:0.1.0"
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  finish() {
+                    code=$?
+                    if [ $code -ne 0 ]; then
+                      touch /data/zookeeper/BACKUP_FAILED
+                    fi
+                    exit $code
+                  }
+                  trap finish EXIT
+                  if [ -f /data/zookeeper/backup.txt ]; then rm /data/zookeeper/backup.txt; fi
+                  if [ -f /data/zookeeper/BACKUP_COMPLETED ]; then rm /data/zookeeper/BACKUP_COMPLETED; fi
+                  if [ -f /data/zookeeper/BACKUP_FAILED ]; then rm /data/zookeeper/BACKUP_FAILED; fi
+                  sleep 15
+                  timestamp=$(date +%Y-%m-%d-%H-%M-%S)
+                  mkdir -p "/data/zookeeper/zookeeper${timestamp}"
+                  java $JAVA_OPTIONS -jar /opt/guano/guano-0.1.0.jar -v -s "{{ include "zookeeper.fullname" . }}:{{ int .Values.service.port }}" -o "/data/zookeeper/zookeeper${timestamp}" -d "/" || exit 2
+                  cd /data/zookeeper
+                  tar cvfz "zookeeper${timestamp}.tar.gz" "zookeeper${timestamp}" || exit 2
+                  echo "zookeeper${timestamp}.tar.gz" > /data/zookeeper/backup.txt
+                  du -hs "zookeeper${timestamp}.tar.gz" "zookeeper${timestamp}"
+                  while true; do
+                    if [ -f /data/zookeeper/UPLOAD_COMPLETED ]; then
+                      rm -rf /data/zookeeper/zookeeper${timestamp}
+                      rm /data/zookeeper/zookeeper${timestamp}.tar.gz
+                      exit 0
+                    fi
+                    sleep 10
+                  done
+              env:
+                - name: JAVA_OPTIONS
+                  value: {{ .Values.backup.javaOpts }}
+              volumeMounts:
+                - name: zookeeper-backup
+                  mountPath: /data/zookeeper
+            - name: zookeeper-backup-upload
+              image: "gcr.io/google.com/cloudsdktool/cloud-sdk:alpine"
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  finish() {
+                    code=$?
+                    touch /data/zookeeper/UPLOAD_COMPLETED
+                    curl -s -XPOST http://127.0.0.1:15020/quitquitquit || true; echo
+                    exit $code
+                  }
+                  trap finish EXIT
+                  if [ -f /data/zookeeper/UPLOAD_COMPLETED ]; then rm /data/zookeeper/UPLOAD_COMPLETED; fi
+                  sleep 30
+                  while true; do
+                    if [ -f /data/zookeeper/BACKUP_FAILED ]; then
+                      exit 0
+                    fi
+                    if [ -f /data/zookeeper/backup.txt ]; then
+                      backup=$(cat /data/zookeeper/backup.txt)
+                      if [ -f "/data/zookeeper/$backup" ]; then
+                        month=$(date +%Y-%m)
+                        gsutil cp "/data/zookeeper/$backup" "$BACKUP_LOCATION/$month/$backup" || exit 2
+                        exit 0
+                      fi
+                    fi
+                    sleep 10
+                  done
+              env:
+                - name: BACKUP_LOCATION
+                  value: {{ .Values.backup.location }}
+                - name: GOOGLE_APPLICATION_CREDENTIALS
+                  value: "/accounts/key.json"
+              volumeMounts:
+                - name: zookeeper-backup
+                  mountPath: /data/zookeeper
+                - name: gcs-iam-secret
+                  mountPath: "/accounts"
+          volumes:
+            - name: zookeeper-backup
+              emptyDir: {}
+            - name: gcs-iam-secret
+              secret:
+                secretName: {{ .Values.backup.secretName }}
+          {{- if .Values.backup.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml .Values.backup.imagePullSecrets | nindent 12 }}
+          {{- end }}
+          affinity:
+            {{- toYaml .Values.backup.affinity | nindent 12 }}
+          nodeSelector:
+            {{- toYaml .Values.backup.nodeSelector | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.backup.securityContext | nindent 12 }}
+          tolerations:
+            {{- toYaml .Values.backup.tolerations | nindent 12 }}
+  {{- end }}
