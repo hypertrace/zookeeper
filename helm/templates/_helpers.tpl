@@ -59,3 +59,11 @@ Form the zookeeper headless service name
 {{- define "zookeeper.headless.service" -}}
 {{- printf "%s-headless" (include "zookeeper.fullname" .) | trunc 63 }}
 {{- end -}}
+
+{{- define "zookeeperservice.image" -}}
+  {{- if and .Values.image.tagOverride  -}}
+    {{- printf "%s:%s" .Values.image.repository .Values.image.tagOverride }}
+  {{- else -}}
+    {{- printf "%s:%s" .Values.image.repository .Chart.AppVersion }}
+  {{- end -}}
+{{- end -}}
