@@ -32,7 +32,7 @@ spec:
       serviceAccountName: {{ template "zookeeper.serviceAccountName" . }}
       containers:
         - name: {{ .Chart.Name }}
-          image: "{{ .Values.image.repository }}:{{ .Chart.Version }}"
+          image: "{{ include "zookeeperservice.image" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: client

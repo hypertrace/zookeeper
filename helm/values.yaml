@@ -9,6 +9,7 @@ replicaCount: 1
 image:
   repository: "hypertrace/zookeeper"
   pullPolicy: "IfNotPresent"
+  tagOverride: ""
 
 imagePullSecrets: []
 
