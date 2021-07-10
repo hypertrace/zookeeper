@@ -16,7 +16,7 @@ spec:
     - name: {{ include "zookeeper.fullname" . }}
       rules:
         - alert: ZookeeperDown
-          expr: up{job="zookeeper",pod=~".*zookeeper-[0-9]+"} == 0
+          expr: up{job="zookeeper",pod=~".*zookeeper-[0-9]+",namespace={{ .Release.Namespace | quote }}} == 0
           for: 3m
           labels:
             severity: warning
@@ -24,7 +24,7 @@ spec:
             summary: "Zookeeper instance is down"
             message: "Zookeeper is down on {{`{{ $labels.pod }}`}}. Could not scrape jmx-exporter for 3 minutes"
         - alert: ZookeeperSlow
-          expr: max_over_time(zookeeper_maxrequestlatency[1m]) > 10000
+          expr: max_over_time(zookeeper_maxrequestlatency{namespace={{ .Release.Namespace | quote }}}[1m]) > 10000
           for: 3m
           labels:
             severity: warning
@@ -32,7 +32,7 @@ spec:
             summary: "Zookeeper high latency"
             message: "Zookeeper latency is {{`{{ $value }}`}}ms (aggregated over 1m) on {{`{{ $labels.pod }}`}}."
         - alert: ZookeeperEnsembleBroken
-          expr: sum(up{job="zookeeper",pod=~".*zookeeper-[0-9]+"}) < 2
+          expr: sum(up{job="zookeeper",pod=~".*zookeeper-[0-9]+",namespace={{ .Release.Namespace | quote }}}) < 2
           for: 1m
           labels:
             severity: major
@@ -40,7 +40,7 @@ spec:
             summary: "Zookeeper ensemble is broken"
             message: "Zookeeper ensemble is broken, it has {{`{{ $value }}`}} nodes in it."
         - alert: ZookeeperLeaderNotAvailable
-          expr: count(zookeeper_inmemorydatatree_nodecount{membertype="Leader"}) == 0
+          expr: count(zookeeper_inmemorydatatree_nodecount{membertype="Leader",namespace={{ .Release.Namespace | quote }}}) == 0
           for: 1m
           labels:
             severity: major
@@ -48,7 +48,7 @@ spec:
             summary: "Zookeeper leader is not available"
             message: "Zookeeper leader is not available, it has {{`{{ $value }}`}} leaders in it."
         - alert: ZookeeperMultipleLeaders
-          expr: count(zookeeper_inmemorydatatree_nodecount{membertype="Leader"}) > 1
+          expr: count(zookeeper_inmemorydatatree_nodecount{membertype="Leader",namespace={{ .Release.Namespace | quote }}}) > 1
           for: 1m
           labels:
             severity: major
@@ -56,7 +56,7 @@ spec:
             summary: "Zookeeper has multiple leaders"
             message: "Zookeeper has multiple leaders, it has {{`{{ $value }}`}} leaders in it."
         - alert: ZookeeperAvgRequestLatency
-          expr: zookeeper_avgrequestlatency > 10
+          expr: zookeeper_avgrequestlatency{namespace={{ .Release.Namespace | quote }}} > 10
           for: 1m
           labels:
             severity: warning
@@ -64,7 +64,7 @@ spec:
             summary: "Zookeeper average request latency"
             message: "The average request latency is {{`{{ $value }}`}} on {{`{{ $labels.pod }}`}}"
         - alert: ZookeeperOutstandingRequests
-          expr: zookeeper_outstandingrequests > 10
+          expr: zookeeper_outstandingrequests{namespace={{ .Release.Namespace | quote }}} > 10
           for: 1m
           labels:
             severity: warning
@@ -72,7 +72,7 @@ spec:
             summary: "Zookeeper outstanding requests"
             message: "There are {{`{{ $value }}`}} outstanding requests on {{`{{ $labels.pod }}`}}"
         - alert: ZookeeperContainerRestartedInTheLast5Minutes
-          expr: count(count_over_time(container_last_seen{container_name="zookeeper"}[5m])) > 2 * count(container_last_seen{container_name="zookeeper",pod_name=~".*zookeeper-[0-9]+"})
+          expr: count(count_over_time(container_last_seen{container="zookeeper",namespace={{ .Release.Namespace | quote }}}[5m])) > 2 * count(container_last_seen{container="zookeeper",pod=~".*zookeeper-[0-9]+",namespace={{ .Release.Namespace | quote }}})
           for: 5m
           labels:
             severity: warning
@@ -80,7 +80,7 @@ spec:
             summary: "One or more Zookeeper containers were restarted too often"
             message: "One or more Zookeeper containers were restarted too often within the last 5 minutes. This alert can be ignored when the Zookeeper cluster is scaling up"
         - alert: ZookeeperContainersDown
-          expr: absent(container_last_seen{container_name="zookeeper",pod_name=~".*zookeeper-[0-9]+"})
+          expr: absent(container_last_seen{container="zookeeper",pod=~".*zookeeper-[0-9]+",namespace={{ .Release.Namespace | quote }}})
           for: 5m
           labels:
             severity: major

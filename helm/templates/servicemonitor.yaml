@@ -23,6 +23,7 @@ spec:
   endpoints:
     - port: jmx-prometheus
       interval: {{ .Values.servicemonitor.interval }}
+      scrapeTimeout: {{ .Values.servicemonitor.scrapeTimeout }}
       {{- if .Values.servicemonitor.secure }}
       scheme: https
       tlsConfig:
