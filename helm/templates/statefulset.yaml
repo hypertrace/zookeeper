@@ -98,10 +98,8 @@ spec:
           imagePullPolicy: "{{ .Values.prometheus.jmx.image.pullPolicy }}"
           command:
             - java
-            - -XX:+UnlockExperimentalVMOptions
             - -Xms64M
             - -Xmx128M
-            - -XshowSettings:vm
             - -jar
             - jmx_prometheus_httpserver.jar
             - {{ .Values.prometheus.jmx.port | quote }}
