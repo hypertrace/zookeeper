@@ -14,7 +14,7 @@ RUN apk add --update curl gpg gpg-agent && \
 
 FROM openjdk:11-jre-slim
 
-RUN apt update && apt install -y netcat
+RUN apt update && apt install -y netcat && apt upgrade -y
 
 COPY --from=downloader /opt/zookeeper /opt/zookeeper
 
