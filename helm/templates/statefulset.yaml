@@ -99,8 +99,8 @@ spec:
           command:
             - java
             - -XX:+UnlockExperimentalVMOptions
-            - -XX:+UseCGroupMemoryLimitForHeap
-            - -XX:MaxRAMFraction=1
+            - -Xms64M
+            - -Xmx128M
             - -XshowSettings:vm
             - -jar
             - jmx_prometheus_httpserver.jar
