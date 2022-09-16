@@ -16,7 +16,7 @@ data:
 
   ok: |
     #!/bin/sh
-    zkServer.sh status
+    $ZOOKEEPER_HOME/bin/zkServer.sh status
 
   ready: |
     #!/bin/sh

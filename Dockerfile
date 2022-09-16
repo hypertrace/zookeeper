@@ -1,12 +1,27 @@
-# https://console.cloud.google.com/gcr/images/google-containers/GLOBAL/kubernetes-zookeeper
-# NOTE: The tag 1.0-3.4.10 is over 3 years old!
-FROM k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10
+FROM alpine:latest AS downloader
 
-ENV ZOOKEEPER_VERSION="1.0-3.4.10"
+ARG ZOOKEEPER_VERSION=3.7.1
 
-RUN set -ex \
-    && apt-get update \
-    && apt-get install -y wget \
-    && mkdir -p /opt/prometheus \
-    && wget -O /opt/prometheus/jmx_prometheus_javaagent-0.12.0.jar https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/0.12.0/jmx_prometheus_javaagent-0.12.0.jar \
-    && apt-get autoremove -y wget
+RUN apk add --update curl gpg gpg-agent && \
+    curl -sLO https://www.apache.org/dist/zookeeper/KEYS && \
+    gpg --import KEYS && \
+    curl -sLO https://archive.apache.org/dist/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz && \
+    curl -sLO https://archive.apache.org/dist/zookeeper/zookeeper-${ZOOKEEPER_VERSION}/apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz.asc && \
+    gpg --verify apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz.asc apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz && \
+    tar xvfz apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz && \
+    mv apache-zookeeper-${ZOOKEEPER_VERSION}-bin /opt/zookeeper && \
+    rm -rf KEYS apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz.asc apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz
+
+FROM openjdk:11-jre-slim
+
+RUN apt update && apt install -y netcat && apt upgrade -y
+
+COPY --from=downloader /opt/zookeeper /opt/zookeeper
+
+ENV ZOOKEEPER_HOME=/opt/zookeeper
+
+WORKDIR /opt/zookeeper
+
+ENTRYPOINT ["/opt/zookeeper/bin/zkServer.sh"]
+
+CMD ["start-foreground"]

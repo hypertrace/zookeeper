@@ -98,10 +98,8 @@ spec:
           imagePullPolicy: "{{ .Values.prometheus.jmx.image.pullPolicy }}"
           command:
             - java
-            - -XX:+UnlockExperimentalVMOptions
-            - -XX:+UseCGroupMemoryLimitForHeap
-            - -XX:MaxRAMFraction=1
-            - -XshowSettings:vm
+            - -Xms64M
+            - -Xmx128M
             - -jar
             - jmx_prometheus_httpserver.jar
             - {{ .Values.prometheus.jmx.port | quote }}
