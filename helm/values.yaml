@@ -63,6 +63,8 @@ securityContext:
   runAsUser: 1000
   fsGroup: 1000
 
+hostNetwork: false
+
 # Persistence volume
 volume:
   storageClassName: standard
