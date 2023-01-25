@@ -16,6 +16,9 @@ spec:
     - name: election
       port: {{ int .Values.config.electionPort }}
       targetPort: election
+  {{- if .Values.hostNetwork }}
+  publishNotReadyAddresses: true
+  {{- end }}
   selector:
     app: {{ template "zookeeper.name" . }}
     release: {{ .Release.Name }}
