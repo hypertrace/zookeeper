@@ -12,7 +12,7 @@ RUN apk add --update curl gpg gpg-agent && \
     mv apache-zookeeper-${ZOOKEEPER_VERSION}-bin /opt/zookeeper && \
     rm -rf KEYS apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz.asc apache-zookeeper-${ZOOKEEPER_VERSION}-bin.tar.gz
 
-FROM openjdk:11-jre-slim
+FROM eclipse-temurin:11-jre-jammy
 
 RUN apt update && apt install -y netcat && apt upgrade -y
 
