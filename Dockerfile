@@ -1,6 +1,6 @@
 FROM alpine:latest AS downloader
 
-ARG ZOOKEEPER_VERSION=3.8.1
+ARG ZOOKEEPER_VERSION=3.8.3
 
 RUN apk add --update curl gpg gpg-agent && \
     curl -sLO https://www.apache.org/dist/zookeeper/KEYS && \
