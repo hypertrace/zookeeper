@@ -147,7 +147,7 @@ prometheus:
     enabled: false
     image:
       repository: hypertrace/prometheus-jmx-exporter
-      tag: 0.1.4
+      tag: 0.1.7
       pullPolicy: IfNotPresent
     port: 5556
     resources:
