@@ -92,6 +92,10 @@ spec:
               mountPath: /scripts
             - name: zk-data
               mountPath: /var/lib/zookeeper/data
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
         {{- if .Values.prometheus.jmx.enabled }}
         - name: prometheus-jmx-exporter
           image: "{{ .Values.prometheus.jmx.image.repository }}:{{ .Values.prometheus.jmx.image.tag }}"
@@ -112,6 +116,10 @@ spec:
           volumeMounts:
             - name: {{ include "zookeeper.fullname" . }}-jmx-config
               mountPath: /etc/jmx-zookeeper
+          {{- with .Values.containerSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
         {{- end }}
       terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
       volumes:
@@ -143,7 +151,7 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.securityContext }}
+      {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}

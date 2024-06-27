@@ -59,9 +59,11 @@ nodeSelector: {}
 
 affinity: {}
 
-securityContext:
+podSecurityContext:
   runAsUser: 1000
   fsGroup: 1000
+
+containerSecurityContext: {}
 
 hostNetwork: false
 
@@ -145,10 +147,13 @@ prometheus:
     enabled: false
     image:
       repository: hypertrace/prometheus-jmx-exporter
-      tag: 0.1.4
+      tag: 0.1.7
       pullPolicy: IfNotPresent
     port: 5556
     resources:
+      limits:
+        cpu: "0.5"
+        memory: "512Mi"
       requests:
         cpu: "0.1"
         memory: "256Mi"
