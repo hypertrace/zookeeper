@@ -17,73 +17,100 @@ spec:
       rules:
         - alert: ZookeeperDown
           expr: up{job="zookeeper",pod=~".*zookeeper-[0-9]+",namespace={{ .Release.Namespace | quote }}} == 0
-          for: 3m
+          for: {{ dig "ZookeeperDown" "for" "3m" .Values.prometheusrule }}
           labels:
-            severity: warning
+            severity: {{ dig "ZookeeperDown" "severity" "warning" .Values.prometheusrule }}
+            {{- with .Values.prometheusrule.additionalRuleLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           annotations:
             summary: "Zookeeper instance is down"
             message: "Zookeeper is down on {{`{{ $labels.pod }}`}}. Could not scrape jmx-exporter for 3 minutes"
         - alert: ZookeeperSlow
           expr: max_over_time(zookeeper_maxrequestlatency{namespace={{ .Release.Namespace | quote }}}[1m]) > 10000
-          for: 3m
+          for: {{ dig "ZookeeperSlow" "for" "3m" .Values.prometheusrule }}
           labels:
-            severity: warning
+            severity: {{ dig "ZookeeperSlow" "severity" "warning" .Values.prometheusrule }}
+            {{- with .Values.prometheusrule.additionalRuleLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           annotations:
             summary: "Zookeeper high latency"
             message: "Zookeeper latency is {{`{{ $value }}`}}ms (aggregated over 1m) on {{`{{ $labels.pod }}`}}."
         - alert: ZookeeperEnsembleBroken
           expr: sum(up{job="zookeeper",pod=~".*zookeeper-[0-9]+",namespace={{ .Release.Namespace | quote }}}) < 2
-          for: 1m
+          for: {{ dig "ZookeeperEnsembleBroken" "for" "1m" .Values.prometheusrule }}
           labels:
-            severity: major
+            severity: {{ dig "ZookeeperEnsembleBroken" "severity" "critical" .Values.prometheusrule }}
+            {{- with .Values.prometheusrule.additionalRuleLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           annotations:
             summary: "Zookeeper ensemble is broken"
             message: "Zookeeper ensemble is broken, it has {{`{{ $value }}`}} nodes in it."
         - alert: ZookeeperLeaderNotAvailable
           expr: count(zookeeper_inmemorydatatree_nodecount{membertype="Leader",namespace={{ .Release.Namespace | quote }}}) == 0
-          for: 1m
+          for: {{ dig "ZookeeperLeaderNotAvailable" "for" "1m" .Values.prometheusrule }}
           labels:
-            severity: major
+            severity: {{ dig "ZookeeperLeaderNotAvailable" "severity" "critical" .Values.prometheusrule }}
+            {{- with .Values.prometheusrule.additionalRuleLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           annotations:
             summary: "Zookeeper leader is not available"
             message: "Zookeeper leader is not available, it has {{`{{ $value }}`}} leaders in it."
         - alert: ZookeeperMultipleLeaders
           expr: count(zookeeper_inmemorydatatree_nodecount{membertype="Leader",namespace={{ .Release.Namespace | quote }}}) > 1
-          for: 1m
+          for: {{ dig "ZookeeperMultipleLeaders" "for" "1m" .Values.prometheusrule }}
           labels:
-            severity: major
+            severity: {{ dig "ZookeeperMultipleLeaders" "severity" "critical" .Values.prometheusrule }}
+            {{- with .Values.prometheusrule.additionalRuleLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           annotations:
             summary: "Zookeeper has multiple leaders"
             message: "Zookeeper has multiple leaders, it has {{`{{ $value }}`}} leaders in it."
         - alert: ZookeeperAvgRequestLatency
           expr: zookeeper_avgrequestlatency{namespace={{ .Release.Namespace | quote }}} > 10
-          for: 1m
+          for: {{ dig "ZookeeperAvgRequestLatency" "for" "1m" .Values.prometheusrule }}
           labels:
-            severity: warning
+            severity: {{ dig "ZookeeperAvgRequestLatency" "severity" "warning" .Values.prometheusrule }}
+            {{- with .Values.prometheusrule.additionalRuleLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           annotations:
             summary: "Zookeeper average request latency"
             message: "The average request latency is {{`{{ $value }}`}} on {{`{{ $labels.pod }}`}}"
         - alert: ZookeeperOutstandingRequests
           expr: zookeeper_outstandingrequests{namespace={{ .Release.Namespace | quote }}} > 10
-          for: 1m
+          for: {{ dig "ZookeeperOutstandingRequests" "for" "1m" .Values.prometheusrule }}
           labels:
-            severity: warning
+            severity: {{ dig "ZookeeperOutstandingRequests" "severity" "warning" .Values.prometheusrule }}
+            {{- with .Values.prometheusrule.additionalRuleLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           annotations:
             summary: "Zookeeper outstanding requests"
             message: "There are {{`{{ $value }}`}} outstanding requests on {{`{{ $labels.pod }}`}}"
         - alert: ZookeeperContainerRestartedInTheLast5Minutes
           expr: count(count_over_time(container_last_seen{container="zookeeper",namespace={{ .Release.Namespace | quote }}}[5m])) > 2 * count(container_last_seen{container="zookeeper",pod=~".*zookeeper-[0-9]+",namespace={{ .Release.Namespace | quote }}})
-          for: 5m
+          for: {{ dig "ZookeeperContainerRestartedInTheLast5Minutes" "for" "5m" .Values.prometheusrule }}
           labels:
-            severity: warning
+            severity: {{ dig "ZookeeperContainerRestartedInTheLast5Minutes" "severity" "warning" .Values.prometheusrule }}
+            {{- with .Values.prometheusrule.additionalRuleLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           annotations:
             summary: "One or more Zookeeper containers were restarted too often"
             message: "One or more Zookeeper containers were restarted too often within the last 5 minutes. This alert can be ignored when the Zookeeper cluster is scaling up"
         - alert: ZookeeperContainersDown
           expr: absent(container_last_seen{container="zookeeper",pod=~".*zookeeper-[0-9]+",namespace={{ .Release.Namespace | quote }}})
-          for: 5m
+          for: {{ dig "ZookeeperContainersDown" "for" "5m" .Values.prometheusrule }}
           labels:
-            severity: major
+            severity: {{ dig "ZookeeperContainersDown" "severity" "critical" .Values.prometheusrule }}
+            {{- with .Values.prometheusrule.additionalRuleLabels }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           annotations:
             summary: "All zookeeper containers in the Zookeeper pods down or in CrashLookBackOff status"
             message: "All zookeeper containers in the Zookeeper pods have been down or in CrashLookBackOff status for 3 minutes"
