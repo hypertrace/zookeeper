@@ -23,6 +23,10 @@ podLabels: {}
 
 podAnnotations: {}
 
+commonPodLabels: {}
+
+commonPodAnnotations: {}
+
 serviceAccount:
   create: true
   name: ""
