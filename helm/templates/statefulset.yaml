@@ -21,12 +21,12 @@ spec:
       labels:
         app: {{ include "zookeeper.name" . }}
         release: {{ .Release.Name }}
-      {{- with .Values.podLabels }}
+      {{- with merge .Values.podLabels .Values.commonPodLabels }}
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- if .Values.podAnnotations }}
+      {{- with merge .Values.podAnnotations .Values.commonPodAnnotations }}
       annotations:
-        {{- toYaml .Values.podAnnotations | nindent 8 }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
       serviceAccountName: {{ template "zookeeper.serviceAccountName" . }}
